@@ -1,8 +1,10 @@
 import db from "../db";
 import { todoType, todoInput, todoQuery } from "../types/todo";
-import { CustomError } from "../types/error";
+import { ResponseType } from "../types/response";
 
-export const fetchTodos = async (query: todoQuery): Promise<todoType[]> => {
+export const fetchTodos = async (
+  query: todoQuery,
+): Promise<ResponseType<todoType[]>> => {
   const dbQuery = db("todos as t")
     .join("users as u", "t.user_id", "u.id")
     .join("statuses as s", "t.status_id", "s.id")
@@ -19,18 +21,22 @@ export const fetchTodos = async (query: todoQuery): Promise<todoType[]> => {
     dbQuery.where("t.status_id", query.status);
   }
 
-  return dbQuery;
+  return { success: true, data: await dbQuery };
 };
 
-export const createTodo = async (todoPayload: todoInput): Promise<todoType> => {
+export const createTodo = async (
+  todoPayload: todoInput,
+): Promise<ResponseType<todoType>> => {
   const { title, description, user_id, status_id } = todoPayload;
 
   const isExistingTodo = await db("todos").where({ title, user_id }).first();
 
   if (isExistingTodo) {
-    const err = new Error("Todo already exists") as CustomError;
-    err.statusCode = 409;
-    throw err;
+    return {
+      success: false,
+      message: "Todo with the same title already exists for this user",
+      statusCode: 409,
+    };
   }
 
   const [result] = await db<todoInput>("todos")
@@ -42,16 +48,18 @@ export const createTodo = async (todoPayload: todoInput): Promise<todoType> => {
     })
     .returning<todoType[]>("*");
 
-  const newTodo = db("todos as t")
+  const newTodo = await db("todos as t")
     .join("statuses as s", "t.status_id", "s.id")
     .select("t.*", "s.id as status_id", "s.name as status_name")
     .where("t.id", result.id)
     .first<todoType>();
 
-  return newTodo;
+  return { success: true, data: newTodo };
 };
 
-export const fetchTodoById = async (id: string): Promise<todoType> => {
+export const fetchTodoById = async (
+  id: string,
+): Promise<ResponseType<todoType>> => {
   const result = await db<todoType>("todos as t")
     .join("statuses as s", "t.status_id", "s.id")
     .select("t.*", "s.id as status_id", "s.name as status_name")
@@ -59,18 +67,20 @@ export const fetchTodoById = async (id: string): Promise<todoType> => {
     .first<todoType>();
 
   if (!result) {
-    const err = new Error("Todo not found") as CustomError;
-    err.statusCode = 404;
-    throw err;
+    return {
+      success: false,
+      message: "Todo not found",
+      statusCode: 404,
+    };
   }
 
-  return result;
+  return { success: true, data: result };
 };
 
 export const updateTodo = async (
   id: string,
   updatePayload: Partial<todoInput>,
-): Promise<todoType> => {
+): Promise<ResponseType<todoType>> => {
   const { title, description, status_id } = updatePayload;
   const [result] = await db<todoInput>("todos")
     .where("id", id)
@@ -88,9 +98,10 @@ export const updateTodo = async (
     .where("t.id", result.id)
     .first();
 
-  return updatedTodo;
+  return { success: true, data: updatedTodo };
 };
 
-export const deleteTodo = async (id: string): Promise<void> => {
+export const deleteTodo = async (id: string): Promise<ResponseType<void>> => {
   await db("todos").where("id", id).del();
+  return { success: true, data: undefined };
 };

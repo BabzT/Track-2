@@ -1,13 +1,17 @@
 import { Request, Response } from "express";
 import * as todoService from "../services/todos";
-import { CustomError } from "../types/error";
 
 export const getTodos = async (req: Request, res: Response) => {
   try {
-    const todos = await todoService.fetchTodos(req.query);
+    const response = await todoService.fetchTodos(req.query);
+
+    if (!response.success) {
+      throw new Error("Failed to fetch todos");
+    }
+
     res.status(200).send({
       message: "Todos fetched successfully",
-      data: todos,
+      data: response.data,
     });
   } catch (error) {
     console.log(error);
@@ -17,60 +21,64 @@ export const getTodos = async (req: Request, res: Response) => {
 
 export const createTodo = async (req: Request, res: Response) => {
   try {
-    const todo = await todoService.createTodo({
+    const response = await todoService.createTodo({
       ...req.body,
       user_id: req.user?.id,
     });
+
+    if (!response.success) {
+      return res
+        .status(response.statusCode || 400)
+        .json({ message: response.message || "Failed to create todo" });
+    }
+
     res.status(201).send({
       message: "Todo created successfully",
       data: {
-        id: todo.id,
-        title: todo.title,
-        description: todo.description,
+        id: response.data.id,
+        title: response.data.title,
+        description: response.data.description,
         status: {
-          id: todo.status_id,
-          name: todo.status_name,
+          id: response.data.status_id,
+          name: response.data.status_name,
         },
-        created_at: todo.created_at,
-        updated_at: todo.updated_at,
+        created_at: response.data.created_at,
+        updated_at: response.data.updated_at,
       },
     });
   } catch (error) {
     console.log(error);
-    const err = error as CustomError;
-    if (err.statusCode) {
-      res.status(err.statusCode).json({ message: err.message });
-    } else {
-      res.status(500).json({ message: "Internal server error" });
-    }
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
 export const fetchTodoById = async (req: Request, res: Response) => {
   try {
-    const todo = await todoService.fetchTodoById(req.params.id as string);
+    const response = await todoService.fetchTodoById(req.params.id as string);
+
+    if (!response.success) {
+      return res
+        .status(response.statusCode || 404)
+        .json({ message: response.message || "Todo not found" });
+    }
+
     res.status(200).send({
       message: "Todo fetched successfully",
       data: {
-        id: todo.id,
-        title: todo.title,
-        description: todo.description,
+        id: response.data.id,
+        title: response.data.title,
+        description: response.data.description,
         status: {
-          id: todo.status_id,
-          name: todo.status_name,
+          id: response.data.status_id,
+          name: response.data.status_name,
         },
-        created_at: todo.created_at,
-        updated_at: todo.updated_at,
+        created_at: response.data.created_at,
+        updated_at: response.data.updated_at,
       },
     });
   } catch (error) {
     console.log(error);
-    const err = error as CustomError;
-    if (err.statusCode) {
-      res.status(err.statusCode).json({ message: err.message });
-    } else {
-      res.status(500).json({ message: "Internal server error" });
-    }
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -83,29 +91,29 @@ export const updateTodo = async (req: Request, res: Response) => {
       return res.status(404).send({ message: "Todo not found" });
     }
 
-    const todo = await todoService.updateTodo(id, req.body);
+    const response = await todoService.updateTodo(id, req.body);
+
+    if (!response.success) {
+      return console.log("Failed to update todo");
+    }
+
     res.status(200).send({
       message: "Todo updated successfully",
       data: {
-        id: todo.id,
-        title: todo.title,
-        description: todo.description,
+        id: response.data.id,
+        title: response.data.title,
+        description: response.data.description,
         status: {
-          id: todo.status_id,
-          name: todo.status_name,
+          id: response.data.status_id,
+          name: response.data.status_name,
         },
-        created_at: todo.created_at,
-        updated_at: todo.updated_at,
+        created_at: response.data.created_at,
+        updated_at: response.data.updated_at,
       },
     });
   } catch (error) {
     console.log(error);
-    const err = error as CustomError;
-    if (err.statusCode === 404) {
-      res.status(err.statusCode).json({ message: err.message });
-    } else {
-      res.status(500).json({ message: "Internal server error" });
-    }
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -122,11 +130,6 @@ export const deleteTodo = async (req: Request, res: Response) => {
     res.status(200).send({ message: "Todo deleted successfully" });
   } catch (error) {
     console.log(error);
-    const err = error as CustomError;
-    if (err.statusCode === 404) {
-      res.status(err.statusCode).json({ message: err.message });
-    } else {
-      res.status(500).json({ message: "Internal server error" });
-    }
+    res.status(500).json({ message: "Internal server error" });
   }
 };

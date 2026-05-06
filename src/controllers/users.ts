@@ -3,10 +3,15 @@ import * as usersService from "../services/users";
 
 export const getMe = async (req: Request, res: Response) => {
   try {
-    const user = await usersService.fetchMe(req.user?.id as string);
+    const response = await usersService.fetchMe(req.user?.id as string);
+
+    if (!response.success) {
+      return console.log("User not found");
+    }
+
     return res.status(200).send({
       message: "User fetched successfully",
-      data: user,
+      data: response.data,
     });
   } catch (error) {
     console.log(error);
