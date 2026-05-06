@@ -6,9 +6,6 @@
   "scripts": {
     "dev": "nodemon --exec ts-node src/index.ts",
     "build": "tsc",
-    "migrate": "ts-node src/db/migrate.ts",
-    "seed": "ts-node src/db/seed.ts",
-    "drop": "ts-node src/db/drop.ts",
     "start": "node dist/index.js"
   },
   "keywords": [],
