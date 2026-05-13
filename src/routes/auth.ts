@@ -10,7 +10,8 @@ router.post(
   validateRequestBody(registerSchema),
   userController.createAccount,
 );
-
 router.post("/login", validateRequestBody(loginSchema), userController.login);
+router.post("/refresh-token", userController.refreshAccessToken);
+router.post("/logout", userController.logout);
 
 export default router;

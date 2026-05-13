@@ -43,12 +43,61 @@ export const login = async (req: Request, res: Response) => {
     res.status(200).send({
       message: "Login Successful",
       data: {
-        id: response.data.id,
-        email: response.data.email,
-        name: response.data.name,
-        created_at: response.data.created_at,
+        accessToken: response.data.accessToken,
+        refreshToken: response.data.refreshToken,
+        user: {
+          id: response.data.id,
+          email: response.data.email,
+          name: response.data.name,
+          created_at: response.data.created_at,
+        },
       },
     });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const refreshAccessToken = async (req: Request, res: Response) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ message: "Refresh token is required" });
+    }
+
+    const response = await authService.refreshAccessToken(refreshToken);
+
+    if (!response.success) {
+      return res.status(response.statusCode || 401).json({
+        message: response.message || "Could not refresh access token",
+      });
+    }
+
+    res.status(200).json({
+      message: "Access token refreshed successfully",
+      data: {
+        accessToken: response.data.accessToken,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const logout = async (req: Request, res: Response) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ message: "Refresh token is required" });
+    }
+
+    await authService.logout(refreshToken);
+
+    res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Internal server error" });
