@@ -1,8 +1,13 @@
 import db from "../db";
+import "dotenv/config";
 import brycpt from "bcrypt";
 import { registerType } from "../types/auth";
+import redis from "../utils/redis";
+import transporter from "../utils/mailer";
+import { emailQueue } from "../queues/email";
 import { loginType, loginResponseType } from "../types/auth";
 import { ResponseType } from "../types/response";
+import { getPasswordResetEmailTemplate } from "../utils/templates/passwordResetEmail";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -26,14 +31,20 @@ export const createAccount = async (
 
   const hashedPassword = await brycpt.hash(password, 10);
 
-  const result = await db("users")
+  const [result] = await db("users")
     .insert({
       email,
       name,
       password: hashedPassword,
     })
-    .returning(["id", "name", "email", "created_at"])
-    .first();
+    .returning(["id", "name", "email", "created_at"]);
+
+  await emailQueue.add("sendWelcomeEmail", {
+    to: email,
+    subject: "Welcome to Our App!",
+    text: `Hi ${name},\n\nThank you for registering on our app! We're excited to have you on board.\n\nBest regards,\nThe Team`,
+  });
+
   return { success: true, data: result };
 };
 
@@ -118,6 +129,59 @@ export const refreshAccessToken = async (
   return {
     success: true,
     data: { accessToken: newAccessToken },
+  };
+};
+
+export const forgotPassword = async (
+  email: string,
+): Promise<ResponseType<null>> => {
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+  await redis.set(`reset-otp:${email}`, otp, "EX", 5 * 60);
+
+  await transporter.sendMail({
+    from: process.env.GMAIL_USER,
+    to: email,
+    subject: "Password Reset OTP",
+    html: getPasswordResetEmailTemplate(otp),
+  });
+
+  return {
+    success: true,
+    data: null,
+  };
+};
+
+export const resetPassword = async (
+  email: string,
+  otp: string,
+  newPassword: string,
+): Promise<ResponseType<null>> => {
+  const storedOtp = await redis.get(`reset-otp:${email}`);
+
+  if (otp !== storedOtp) {
+    return {
+      success: false,
+      message: "Invalid / Expired OTP",
+      statusCode: 400,
+    };
+  }
+
+  const hashedPassword = await brycpt.hash(newPassword, 10);
+
+  await db("users").where({ email }).update({ password: hashedPassword });
+
+  await redis.del(`reset-otp:${email}`);
+
+  await emailQueue.add("sendPasswordResetConfirmationEmail", {
+    to: email,
+    subject: "Password Reset Successful",
+    text: `Hi,\n\nYour password has been reset successfully. If you did not perform this action, please contact our support immediately.\n\nBest regards,\nThe Team`,
+  });
+
+  return {
+    success: true,
+    data: null,
   };
 };
 

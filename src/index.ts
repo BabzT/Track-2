@@ -1,6 +1,7 @@
 import "dotenv/config";
 import app from "./app";
 import db from "./db";
+import "./queues";
 
 const PORT = process.env.PORT || 5000;
 

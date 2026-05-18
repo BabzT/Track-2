@@ -9,6 +9,12 @@ export const validateRequestBody = (bodySchema: ZodObject) => {
     } catch (err) {
       if (err instanceof ZodError) {
         const message: string = err.issues.map((e) => e.message).join(", ");
+
+        if (err.issues[0]?.code === "unrecognized_keys") {
+          return res
+            .status(400)
+            .send({ message: "Invalid fields in request body" });
+        }
         return res.status(400).send({ message: message || "Validation error" });
       }
       res.status(400).json({ message: "Validation error" });

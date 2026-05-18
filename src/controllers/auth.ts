@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import * as authService from "../services/auth";
+import * as userService from "../services/users";
 import { registerType } from "../types/auth";
 import { loginType } from "../types/auth";
 
@@ -80,6 +81,54 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
       data: {
         accessToken: response.data.accessToken,
       },
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const forgotPassword = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    const user = await userService.getUserByEmail(email);
+
+    if (!user.success) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const response = await authService.forgotPassword(email);
+
+    if (!response.success) {
+      return res
+        .status(response.statusCode || 400)
+        .json({ message: response.message || "Failed to send OTP" });
+    }
+
+    res.status(200).json({
+      message: "Password reset OTP sent to email successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    const response = await authService.resetPassword(email, otp, newPassword);
+
+    if (!response.success) {
+      return res
+        .status(response.statusCode || 400)
+        .json({ message: response.message || "Failed to reset password" });
+    }
+
+    res.status(200).json({
+      message: "Password reset successfully",
     });
   } catch (error) {
     console.log(error);
