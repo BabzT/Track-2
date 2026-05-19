@@ -1,0 +1,98 @@
+export const getTaskReminderEmailTemplate = (
+  title: string,
+  type: "reminder" | "due",
+) => {
+  const isReminder = type === "reminder";
+
+  const accentColor = isReminder ? "#f59e0b" : "#ef4444";
+  const badgeBg = isReminder ? "#fffbeb" : "#fef2f2";
+  const badgeText = isReminder ? "#b45309" : "#b91c1c";
+  const badgeLabel = isReminder ? "Due in 5 Minutes" : "Due Now";
+  const heading = isReminder ? "Your task is due soon" : "Your task is due now";
+  const message = isReminder
+    ? "You have <strong>5 minutes</strong> left to complete your task. Make sure to wrap up and mark it as done."
+    : "The deadline for your task has arrived. Please complete it and update the status.";
+  const emoji = isReminder ? "⏰" : "🔔";
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${heading}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f1f5f9;font-family:'Helvetica Neue',Arial,sans-serif;">
+
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+
+        <!-- Card -->
+        <table role="presentation" width="560" style="max-width:560px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+
+          <!-- Top accent bar -->
+          <tr>
+            <td style="background:${accentColor};height:6px;font-size:0;">&nbsp;</td>
+          </tr>
+
+          <!-- Header -->
+          <tr>
+            <td align="center" style="padding:40px 40px 24px;">
+              <div style="font-size:40px;margin-bottom:16px;">${emoji}</div>
+              <span style="display:inline-block;background:${badgeBg};color:${badgeText};font-size:12px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;padding:6px 14px;border-radius:20px;border:1px solid ${accentColor}33;">
+                ${badgeLabel}
+              </span>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:0 40px 32px;">
+              <h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#0f172a;text-align:center;">
+                ${heading}
+              </h1>
+              <p style="margin:0 0 28px;font-size:15px;line-height:1.7;color:#64748b;text-align:center;">
+                ${message}
+              </p>
+
+              <!-- Task box -->
+              <table role="presentation" width="100%" style="background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;">
+                <tr>
+                  <td style="padding:10px;">
+                    <p style="margin:0 0 4px;font-size:11px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;color:#94a3b8;">Task</p>
+                    <p style="margin:0;font-size:17px;font-weight:700;color:#0f172a;">${title}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr>
+            <td style="padding:0 40px;">
+              <div style="border-top:1px solid #f1f5f9;"></div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="padding:24px 40px 32px;">
+              <p style="margin:0;font-size:12px;color:#94a3b8;line-height:1.6;">
+                This is an automated reminder from your task manager.<br>
+                If this task is no longer relevant, you can safely ignore this email.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+        <!-- /Card -->
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
+  `;
+};

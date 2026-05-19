@@ -1,6 +1,55 @@
 import db from "../db";
 import { todoType, todoInput, todoQuery } from "../types/todo";
 import { ResponseType } from "../types/response";
+import { taskReminderQueue } from "../queues/task-reminder";
+import redis from "../utils/redis";
+
+// Helpers
+
+interface Job {
+  reminderJobId?: string;
+  dueJobId?: string;
+}
+const scheduleTodoJobs = async (todoId: string, due_date: string) => {
+  const now = Date.now();
+  const dueTime = new Date(due_date).getTime();
+
+  if (dueTime <= now) return;
+
+  const jobs: Job = {};
+
+  const reminderDelay = dueTime - now - 5 * 60 * 1000;
+  const dueDelay = dueTime - now;
+
+  if (reminderDelay > 0) {
+    const job = await taskReminderQueue.add(
+      "task-reminder",
+      { todoId, type: "reminder" },
+      { delay: reminderDelay },
+    );
+    jobs.reminderJobId = job.id;
+  }
+
+  const dueJob = await taskReminderQueue.add(
+    "due",
+    { todoId, type: "due" },
+    { delay: dueDelay },
+  );
+  jobs.dueJobId = dueJob.id;
+
+  await redis.set(`todo-jobs:${todoId}`, JSON.stringify(jobs));
+};
+
+const cancelTodoJobs = async (todoId: string) => {
+  const stored = await redis.get(`todo-jobs:${todoId}`);
+  if (!stored) return;
+
+  const { reminderJobId, dueJobId } = JSON.parse(stored);
+  if (reminderJobId) await taskReminderQueue.remove(reminderJobId);
+  if (dueJobId) await taskReminderQueue.remove(dueJobId);
+
+  await redis.del(`todo-jobs:${todoId}`);
+};
 
 export const fetchTodos = async (
   query: todoQuery,
@@ -27,7 +76,7 @@ export const fetchTodos = async (
 export const createTodo = async (
   todoPayload: todoInput,
 ): Promise<ResponseType<todoType>> => {
-  const { title, description, user_id, status_id } = todoPayload;
+  const { title, description, user_id, status_id, due_date } = todoPayload;
 
   const isExistingTodo = await db("todos").where({ title, user_id }).first();
 
@@ -45,8 +94,13 @@ export const createTodo = async (
       description,
       user_id,
       status_id,
+      due_date,
     })
     .returning<todoType[]>("*");
+
+  if (due_date && due_date !== "" && due_date !== null) {
+    await scheduleTodoJobs(result.id, due_date);
+  }
 
   const newTodo = await db("todos as t")
     .join("statuses as s", "t.status_id", "s.id")
@@ -81,15 +135,22 @@ export const updateTodo = async (
   id: string,
   updatePayload: Partial<todoInput>,
 ): Promise<ResponseType<todoType>> => {
-  const { title, description, status_id } = updatePayload;
+  const { title, description, status_id, due_date } = updatePayload;
+
+  const updateData: Partial<todoInput> = {
+    title: title,
+    description: description,
+    status_id: status_id,
+    updated_at: new Date(),
+  };
+
+  if (due_date) {
+    updateData.due_date = due_date;
+  }
+
   const [result] = await db<todoInput>("todos")
     .where("id", id)
-    .update({
-      title: title,
-      description: description,
-      status_id: status_id,
-      updated_at: new Date(),
-    })
+    .update(updateData)
     .returning<todoType[]>("*");
 
   const updatedTodo = await db<todoType>("todos as t")
@@ -98,10 +159,16 @@ export const updateTodo = async (
     .where("t.id", result.id)
     .first();
 
+  if (due_date) {
+    await cancelTodoJobs(id);
+    await scheduleTodoJobs(id, updateData.due_date as string);
+  }
+
   return { success: true, data: updatedTodo };
 };
 
 export const deleteTodo = async (id: string): Promise<ResponseType<void>> => {
+  await cancelTodoJobs(id);
   await db("todos").where("id", id).del();
   return { success: true, data: undefined };
 };

@@ -4,6 +4,7 @@ export interface todoType {
   description: string;
   status_id: string;
   status_name: string;
+  due_date?: string;
   created_at: string;
   updated_at: string | Date;
 }
@@ -13,6 +14,7 @@ export interface todoInput {
   description: string;
   user_id: string;
   status_id: string;
+  due_date?: string;
   created_at?: string;
   updated_at?: string | Date;
 }

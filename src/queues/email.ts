@@ -1,23 +1,24 @@
 import { Queue, Worker } from "bullmq";
 import "dotenv/config";
-import redis from "../utils/redis";
 import transporter from "../utils/mailer";
 
-export const emailQueue = new Queue("emails", {
-  connection: redis,
-});
+const connection = {
+  host: process.env.REDIS_HOST,
+  port: parseInt(process.env.REDIS_PORT || "6379", 10),
+};
+
+export const emailQueue = new Queue("emails", { connection });
 
 new Worker(
   "emails",
   async (job) => {
-    const { to, subject, text } = job.data;
+    const { to, subject, html, text } = job.data;
     await transporter.sendMail({
       from: process.env.GMAIL_USER,
       to,
       subject,
-      text,
+      ...(html ? { html } : { text }),
     });
   },
-
-  { connection: redis },
+  { connection },
 );

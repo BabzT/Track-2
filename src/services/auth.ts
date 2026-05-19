@@ -8,6 +8,8 @@ import { emailQueue } from "../queues/email";
 import { loginType, loginResponseType } from "../types/auth";
 import { ResponseType } from "../types/response";
 import { getPasswordResetEmailTemplate } from "../utils/templates/passwordResetEmail";
+import { getWelcomeEmailTemplate } from "../utils/templates/welcomeEmail";
+import { getPasswordResetSuccessEmailTemplate } from "../utils/templates/passwordResetSuccessEmail";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -42,7 +44,7 @@ export const createAccount = async (
   await emailQueue.add("sendWelcomeEmail", {
     to: email,
     subject: "Welcome to Our App!",
-    text: `Hi ${name},\n\nThank you for registering on our app! We're excited to have you on board.\n\nBest regards,\nThe Team`,
+    html: getWelcomeEmailTemplate(name),
   });
 
   return { success: true, data: result };
@@ -176,7 +178,7 @@ export const resetPassword = async (
   await emailQueue.add("sendPasswordResetConfirmationEmail", {
     to: email,
     subject: "Password Reset Successful",
-    text: `Hi,\n\nYour password has been reset successfully. If you did not perform this action, please contact our support immediately.\n\nBest regards,\nThe Team`,
+    html: getPasswordResetSuccessEmailTemplate(),
   });
 
   return {
