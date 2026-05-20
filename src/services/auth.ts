@@ -3,13 +3,12 @@ import "dotenv/config";
 import brycpt from "bcrypt";
 import { registerType } from "../types/auth";
 import redis from "../utils/redis";
-import transporter from "../utils/mailer";
+import resend from "../utils/mailer";
 import { emailQueue } from "../queues/email";
 import { loginType, loginResponseType } from "../types/auth";
 import { ResponseType } from "../types/response";
-import { getPasswordResetEmailTemplate } from "../utils/templates/passwordResetEmail";
-import { getWelcomeEmailTemplate } from "../utils/templates/welcomeEmail";
-import { getPasswordResetSuccessEmailTemplate } from "../utils/templates/passwordResetSuccessEmail";
+import { renderEmail } from "../utils/templates/renderer";
+import { generateOtp } from "../helpers/otp";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -44,7 +43,13 @@ export const createAccount = async (
   await emailQueue.add("sendWelcomeEmail", {
     to: email,
     subject: "Welcome to Our App!",
-    html: getWelcomeEmailTemplate(name),
+    html: renderEmail("welcome", {
+      name,
+      emailTitle: "Welcome!",
+      accentColor: "linear-gradient(90deg,#10b981,#059669)",
+      footerText:
+        "You're receiving this because you just created an account.<br>If this wasn't you, please contact support immediately.",
+    }),
   });
 
   return { success: true, data: result };
@@ -137,15 +142,21 @@ export const refreshAccessToken = async (
 export const forgotPassword = async (
   email: string,
 ): Promise<ResponseType<null>> => {
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const otp = generateOtp();
 
   await redis.set(`reset-otp:${email}`, otp, "EX", 5 * 60);
 
-  await transporter.sendMail({
-    from: process.env.GMAIL_USER,
+  await resend.emails.send({
+    from: process.env.MAIL_FROM!,
     to: email,
     subject: "Password Reset OTP",
-    html: getPasswordResetEmailTemplate(otp),
+    html: renderEmail("password-reset", {
+      otp,
+      emailTitle: "Password Reset OTP",
+      accentColor: "#334155",
+      footerText:
+        "This is an automated message. Please do not reply to this email.",
+    }),
   });
 
   return {
@@ -178,7 +189,13 @@ export const resetPassword = async (
   await emailQueue.add("sendPasswordResetConfirmationEmail", {
     to: email,
     subject: "Password Reset Successful",
-    html: getPasswordResetSuccessEmailTemplate(),
+    html: renderEmail("password-reset-success", {
+      timestamp: new Date().toUTCString(),
+      emailTitle: "Password Reset Successful",
+      accentColor: "#334155",
+      footerText:
+        "This is an automated security notification. Please do not reply to this email.",
+    }),
   });
 
   return {

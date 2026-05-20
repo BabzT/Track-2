@@ -1,0 +1,54 @@
+<!-- Header -->
+<tr>
+  <td align="center" style="padding:40px 40px 24px;">
+    <div style="font-size:40px;margin-bottom:16px;">{{#if
+        isReminder
+      }}⏰{{else}}🔔{{/if}}</div>
+    <span
+      style="display:inline-block;background:{{badgeBg}};color:{{badgeText}};font-size:12px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;padding:6px 14px;border-radius:20px;border:1px solid {{accentColor}}33;"
+    >
+      {{#if isReminder}}Due in 5 Minutes{{else}}Due Now{{/if}}
+    </span>
+  </td>
+</tr>
+
+<!-- Body -->
+<tr>
+  <td style="padding:0 40px 32px;">
+    <h1
+      style="margin:0 0 12px;font-size:22px;font-weight:700;color:#0f172a;text-align:center;"
+    >
+      {{#if isReminder}}Your task is due soon{{else}}Your task is due now{{/if}}
+    </h1>
+    <p
+      style="margin:0 0 28px;font-size:15px;line-height:1.7;color:#64748b;text-align:center;"
+    >
+      {{#if isReminder}}
+        You have
+        <strong>5 minutes</strong>
+        left to complete your task. Make sure to wrap up and mark it as done.
+      {{else}}
+        The deadline for your task has arrived. Please complete it and update
+        the status.
+      {{/if}}
+    </p>
+
+    <!-- Task box -->
+    <table
+      role="presentation"
+      width="100%"
+      style="background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;"
+    >
+      <tr>
+        <td style="padding:10px;">
+          <p
+            style="margin:0 0 4px;font-size:11px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;color:#94a3b8;"
+          >Task</p>
+          <p
+            style="margin:0;font-size:17px;font-weight:700;color:#0f172a;"
+          >{{title}}</p>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>

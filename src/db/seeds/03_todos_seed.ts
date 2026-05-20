@@ -1,8 +1,6 @@
 import type { Knex } from "knex";
 
 export async function seed(knex: Knex): Promise<void> {
-  await knex("todos").del();
-
   const [user] = await knex("users").select("id").limit(1);
   const [pending] = await knex("statuses")
     .where({ name: "pending" })

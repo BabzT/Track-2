@@ -1,6 +1,5 @@
 import express from "express";
 import { Request, Response } from "express";
-import { authenticate } from "./middleware/authenticate";
 import authRoutes from "./routes/auth";
 import todosRoutes from "./routes/todos";
 import statusRoutes from "./routes/status";
@@ -12,9 +11,9 @@ app.use(express.json());
 
 // Import routes
 app.use("/api/auth", authRoutes);
-app.use("/api/todos", authenticate, todosRoutes);
-app.use("/api/statuses", authenticate, statusRoutes);
-app.use("/api/users", authenticate, usersRoutes);
+app.use("/api/todos", todosRoutes);
+app.use("/api/statuses", statusRoutes);
+app.use("/api/users", usersRoutes);
 
 app.get("/", (req, res) => {
   res.send("Welcome to the Todo APP!");

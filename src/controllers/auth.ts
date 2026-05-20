@@ -95,7 +95,9 @@ export const forgotPassword = async (req: Request, res: Response) => {
     const user = await userService.getUserByEmail(email);
 
     if (!user.success) {
-      return res.status(404).json({ message: "User not found" });
+      return res
+        .status(404)
+        .json({ message: "Password reset OTP sent to email successfully" });
     }
 
     const response = await authService.forgotPassword(email);
@@ -103,7 +105,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
     if (!response.success) {
       return res
         .status(response.statusCode || 400)
-        .json({ message: response.message || "Failed to send OTP" });
+        .json({ message: response.message || "Something went wrong!" });
     }
 
     res.status(200).json({

@@ -1,6 +1,7 @@
 import express from "express";
 import * as authController from "../controllers/auth";
 import { validateRequestBody } from "../middleware/validate";
+import { authenticate } from "../middleware/authenticate";
 import {
   loginSchema,
   registerSchema,
@@ -27,6 +28,6 @@ router.post(
   validateRequestBody(resetPasswordSchema),
   authController.resetPassword,
 );
-router.post("/logout", authController.logout);
+router.post("/logout", authenticate, authController.logout);
 
 export default router;

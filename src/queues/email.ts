@@ -1,6 +1,6 @@
 import { Queue, Worker } from "bullmq";
 import "dotenv/config";
-import transporter from "../utils/mailer";
+import resend from "../utils/mailer";
 
 const connection = {
   host: process.env.REDIS_HOST,
@@ -13,8 +13,8 @@ new Worker(
   "emails",
   async (job) => {
     const { to, subject, html, text } = job.data;
-    await transporter.sendMail({
-      from: process.env.GMAIL_USER,
+    await resend.emails.send({
+      from: process.env.MAIL_FROM!,
       to,
       subject,
       ...(html ? { html } : { text }),

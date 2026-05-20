@@ -16,15 +16,22 @@ const scheduleTodoJobs = async (todoId: string, due_date: string) => {
 
   if (dueTime <= now) return;
 
-  const jobs: Job = {};
+  const todo = await db("todos as t")
+    .join("users as u", "t.user_id", "u.id")
+    .where("t.id", todoId)
+    .select("t.title", "u.email")
+    .first();
 
+  if (!todo) return;
+
+  const jobs: Job = {};
   const reminderDelay = dueTime - now - 5 * 60 * 1000;
   const dueDelay = dueTime - now;
 
   if (reminderDelay > 0) {
     const job = await taskReminderQueue.add(
       "task-reminder",
-      { todoId, type: "reminder" },
+      { title: todo.title, email: todo.email, type: "reminder" },
       { delay: reminderDelay },
     );
     jobs.reminderJobId = job.id;
@@ -32,7 +39,7 @@ const scheduleTodoJobs = async (todoId: string, due_date: string) => {
 
   const dueJob = await taskReminderQueue.add(
     "due",
-    { todoId, type: "due" },
+    { title: todo.title, email: todo.email, type: "due" },
     { delay: dueDelay },
   );
   jobs.dueJobId = dueJob.id;

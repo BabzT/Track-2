@@ -1,8 +1,7 @@
 import "dotenv/config";
-import db from "../db";
 import { Queue, Worker } from "bullmq";
 import { emailQueue } from "./email";
-import { getTaskReminderEmailTemplate } from "../utils/templates/taskReminderEmail";
+import { renderTaskReminderEmail } from "../utils/templates/renderer";
 
 const connection = {
   host: process.env.REDIS_HOST,
@@ -14,24 +13,16 @@ export const taskReminderQueue = new Queue("task-reminder", { connection });
 new Worker(
   "task-reminder",
   async (job) => {
-    const { todoId, type } = job.data;
-
-    const todo = await db("todos as t")
-      .join("users as u", "t.user_id", "u.id")
-      .where("t.id", todoId)
-      .select("t.title", "u.email", "t.due_date")
-      .first();
-
-    if (!todo) return;
+    const { title, email, type } = job.data;
 
     const subject =
       type === "reminder"
-        ? `Reminder: "${todo.title}" is due in 5 minutes`
-        : `"${todo.title}" is due now`;
+        ? `Reminder: "${title}" is due in 5 minutes`
+        : `"${title}" is due now`;
 
-    const html = getTaskReminderEmailTemplate(todo.title, type);
+    const html = renderTaskReminderEmail(title, type);
 
-    await emailQueue.add("send", { to: todo.email, subject, html });
+    await emailQueue.add("send", { to: email, subject, html });
   },
   { connection },
 );
